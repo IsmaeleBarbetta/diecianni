@@ -1,4 +1,5 @@
 import './style.css';
+import { mountThemeToggle } from './theme.js';
 import { mountGate } from './screens/gate.js';
 import { mountIntro } from './screens/intro.js';
 import { mountRiddle } from './screens/riddle.js';
@@ -56,6 +57,7 @@ function startJourney() {
 }
 
 show('gate');
+mountThemeToggle();
 
 // Keep the 3D canvas honest on orientation / resize changes.
 window.addEventListener('resize', () => journeyApi?.resize());

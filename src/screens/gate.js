@@ -2,7 +2,23 @@
 // origami heart, over a cream backdrop, with a continuous rain of little
 // hearts. No clues of any kind.
 
+import { getTheme, onThemeChange } from '../theme.js';
+
 const PASSWORD = 'trenino';
+
+// paper-fold tones per theme
+const HEART_TONES = {
+  light: ['#e63946', '#ff5a6a', '#d62839', '#ff7184', '#f0455a', '#ff6378'],
+  goth: ['#7a0d1b', '#9b1023', '#5e0a16', '#a31226', '#6b0f1d', '#871020'],
+};
+const HEART_BASE = { light: '#e63946', goth: '#7a0d1b' };
+const HEART_STROKE = { light: 'rgba(139,14,24,0.45)', goth: 'rgba(10,4,8,0.6)' };
+
+// falling-heart particle colours per theme
+const RAIN_COLORS = {
+  light: ['#e63946', '#ff5a6a', '#ff8aa3', '#ffb3c1', '#c1121f'],
+  goth: ['#9b1023', '#c41e3a', '#7a0d1b', '#6b2d5c', '#3a0d1a'],
+};
 
 function normalize(s) {
   return s.toLowerCase().replace(/[^a-z0-9àèéìòù]/g, '');
@@ -10,7 +26,7 @@ function normalize(s) {
 
 // Build a faceted (origami) heart as an SVG string. Straight folded panels
 // fan out from the bottom tip — that gives the paper look.
-function origamiHeartSVG() {
+function origamiHeartSVG(theme = 'light') {
   // heart outline, clockwise from the bottom tip (viewBox 0 0 200 200)
   const V = [
     [100, 182],
@@ -31,8 +47,10 @@ function origamiHeartSVG() {
     [60, 150],
   ];
   const tip = V[0];
-  // alternating red/pink paper tones
-  const tones = ['#e63946', '#ff5a6a', '#d62839', '#ff7184', '#f0455a', '#ff6378'];
+  // alternating paper tones for the current theme
+  const tones = HEART_TONES[theme] || HEART_TONES.light;
+  const base = HEART_BASE[theme] || HEART_BASE.light;
+  const stroke = HEART_STROKE[theme] || HEART_STROKE.light;
 
   let facets = '';
   for (let i = 1; i < V.length - 1; i++) {
@@ -57,11 +75,11 @@ function origamiHeartSVG() {
       </linearGradient>
     </defs>
     <g>
-      <polygon points="${outline}" fill="#e63946"/>
+      <polygon points="${outline}" fill="${base}"/>
       ${facets}
       ${creases}
       <polygon points="${outline}" fill="url(#hsheen)"/>
-      <polygon points="${outline}" fill="none" stroke="rgba(139,14,24,0.45)" stroke-width="1.4" stroke-linejoin="round"/>
+      <polygon points="${outline}" fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round"/>
     </g>
   </svg>`;
 }
@@ -69,7 +87,7 @@ function origamiHeartSVG() {
 function startHeartRain(canvas) {
   const ctx = canvas.getContext('2d');
   let w, h, dpr;
-  const colors = ['#e63946', '#ff5a6a', '#ff8aa3', '#ffb3c1', '#c1121f'];
+  let colors = RAIN_COLORS[getTheme()] || RAIN_COLORS.light;
   let hearts = [];
 
   function resize() {
@@ -143,6 +161,10 @@ function startHeartRain(canvas) {
   raf = requestAnimationFrame(frame);
 
   return {
+    setColors(next) {
+      colors = next;
+      for (const p of hearts) p.color = next[(Math.random() * next.length) | 0];
+    },
     stop() {
       running = false;
       cancelAnimationFrame(raf);
@@ -155,7 +177,7 @@ export function mountGate(root, onSolved) {
   root.innerHTML = `
     <canvas class="hearts-canvas" id="hearts-canvas"></canvas>
     <div class="gate-stage">
-      ${origamiHeartSVG()}
+      <div class="origami-slot">${origamiHeartSVG(getTheme())}</div>
       <div class="gate-field" id="gate-field">
         <input
           id="gate-input"
@@ -178,10 +200,17 @@ export function mountGate(root, onSolved) {
   `;
 
   const rain = startHeartRain(root.querySelector('#hearts-canvas'));
+  const slot = root.querySelector('.origami-slot');
   const field = root.querySelector('#gate-field');
   const input = root.querySelector('#gate-input');
   const go = root.querySelector('#gate-go');
   let solved = false;
+
+  // restyle the heart + the rain when the theme changes
+  const offTheme = onThemeChange((theme) => {
+    slot.innerHTML = origamiHeartSVG(theme);
+    rain.setColors(RAIN_COLORS[theme] || RAIN_COLORS.light);
+  });
 
   function fail() {
     field.classList.remove('error');
@@ -202,6 +231,7 @@ export function mountGate(root, onSolved) {
       if (navigator.vibrate) navigator.vibrate([30, 50, 40]);
       setTimeout(() => {
         rain.stop();
+        offTheme();
         onSolved();
       }, 850);
     } else {

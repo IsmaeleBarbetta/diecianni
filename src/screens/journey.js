@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { createNoise2D } from 'simplex-noise';
+import { getTheme, onThemeChange } from '../theme.js';
 
 const noise2D = createNoise2D(() => 0.42); // fixed seed -> same mountains every load
 
@@ -34,24 +35,51 @@ function heightAt(x, z) {
 const SIZE = 240;
 const SEG = 128;
 
-const C_FOREST = new THREE.Color('#3c6b46');
-const C_MEADOW = new THREE.Color('#5d864f');
-const C_ROCK = new THREE.Color('#7d6f60');
-const C_SNOW = new THREE.Color('#f3f1ec');
+// per-theme look: terrain colour ramp, fog, and lighting
+const THEMES = {
+  light: {
+    forest: new THREE.Color('#3c6b46'),
+    meadow: new THREE.Color('#5d864f'),
+    rock: new THREE.Color('#7d6f60'),
+    snow: new THREE.Color('#f3f1ec'),
+    fog: new THREE.Color('#b5707a'),
+    hemiSky: new THREE.Color('#ffe6c4'),
+    hemiGround: new THREE.Color('#40304a'),
+    hemiInt: 0.95,
+    sun: new THREE.Color('#ffd9a0'),
+    sunInt: 1.25,
+    rim: new THREE.Color('#ff9d7a'),
+    rimInt: 0.5,
+  },
+  goth: {
+    forest: new THREE.Color('#1c2a22'),
+    meadow: new THREE.Color('#27302c'),
+    rock: new THREE.Color('#322b3d'),
+    snow: new THREE.Color('#c4c0d6'),
+    fog: new THREE.Color('#1d1230'),
+    hemiSky: new THREE.Color('#6a5a8f'),
+    hemiGround: new THREE.Color('#0a0712'),
+    hemiInt: 0.6,
+    sun: new THREE.Color('#9d8ad6'),
+    sunInt: 0.7,
+    rim: new THREE.Color('#b13a6e'),
+    rimInt: 0.55,
+  },
+};
 
 function smoothstep(a, b, x) {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 }
 
-function colorForHeight(h, target) {
+function colorForHeight(h, target, pal) {
   const c = target;
   if (h < 6) {
-    c.copy(C_FOREST).lerp(C_MEADOW, smoothstep(-6, 6, h));
+    c.copy(pal.forest).lerp(pal.meadow, smoothstep(-6, 6, h));
   } else if (h < 16) {
-    c.copy(C_MEADOW).lerp(C_ROCK, smoothstep(6, 16, h));
+    c.copy(pal.meadow).lerp(pal.rock, smoothstep(6, 16, h));
   } else {
-    c.copy(C_ROCK).lerp(C_SNOW, smoothstep(16, 26, h));
+    c.copy(pal.rock).lerp(pal.snow, smoothstep(16, 26, h));
   }
   return c;
 }
@@ -81,9 +109,10 @@ export function mountJourney(root) {
   renderer.setSize(window.innerWidth, window.innerHeight);
   root.insertBefore(renderer.domElement, root.firstChild);
 
+  let pal = THEMES[getTheme()] || THEMES.light;
+
   const scene = new THREE.Scene();
-  const fogColor = new THREE.Color('#b5707a');
-  scene.fog = new THREE.Fog(fogColor, 150, 360);
+  scene.fog = new THREE.Fog(pal.fog.clone(), 150, 360);
 
   const camera = new THREE.PerspectiveCamera(
     52,
@@ -94,12 +123,16 @@ export function mountJourney(root) {
   const camTarget = new THREE.Vector3(-4, 2, -2);
 
   // ---- lights ----
-  const ambient = new THREE.HemisphereLight(0xffe6c4, 0x40304a, 0.95);
+  const ambient = new THREE.HemisphereLight(
+    pal.hemiSky.clone(),
+    pal.hemiGround.clone(),
+    pal.hemiInt
+  );
   scene.add(ambient);
-  const sun = new THREE.DirectionalLight(0xffd9a0, 1.25);
+  const sun = new THREE.DirectionalLight(pal.sun.clone(), pal.sunInt);
   sun.position.set(-60, 70, 40);
   scene.add(sun);
-  const rim = new THREE.DirectionalLight(0xff9d7a, 0.5);
+  const rim = new THREE.DirectionalLight(pal.rim.clone(), pal.rimInt);
   rim.position.set(70, 30, -60);
   scene.add(rim);
 
@@ -114,7 +147,7 @@ export function mountJourney(root) {
     const z = pos.getZ(i);
     const h = heightAt(x, z);
     pos.setY(i, h);
-    colorForHeight(h, tmpColor);
+    colorForHeight(h, tmpColor, pal);
     colors.push(tmpColor.r, tmpColor.g, tmpColor.b);
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -512,6 +545,27 @@ export function mountJourney(root) {
       elapsed = 0;
     });
   }
+
+  // ---- live theme switching ----
+  const colorAttr = geo.getAttribute('color');
+  function applyTheme(theme) {
+    pal = THEMES[theme] || THEMES.light;
+    scene.fog.color.copy(pal.fog);
+    ambient.color.copy(pal.hemiSky);
+    ambient.groundColor.copy(pal.hemiGround);
+    ambient.intensity = pal.hemiInt;
+    sun.color.copy(pal.sun);
+    sun.intensity = pal.sunInt;
+    rim.color.copy(pal.rim);
+    rim.intensity = pal.rimInt;
+    for (let i = 0; i < pos.count; i++) {
+      const h = heightAt(pos.getX(i), pos.getZ(i));
+      colorForHeight(h, tmpColor, pal);
+      colorAttr.setXYZ(i, tmpColor.r, tmpColor.g, tmpColor.b);
+    }
+    colorAttr.needsUpdate = true;
+  }
+  onThemeChange(applyTheme);
 
   return { start, resize };
 }

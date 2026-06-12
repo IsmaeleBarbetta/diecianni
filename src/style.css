@@ -9,6 +9,9 @@
   --ink: #2a2320;
   --ink-soft: #6b5d54;
   --gold: #d8a657;
+  /* primary text on light surfaces (flips in goth) */
+  --text: #2a2320;
+  --text-soft: #6b5d54;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans: 'Manrope', system-ui, -apple-system, sans-serif;
@@ -89,6 +92,10 @@ body {
   justify-content: center;
   animation: floaty 5s ease-in-out infinite;
 }
+.origami-slot {
+  position: absolute;
+  inset: 0;
+}
 .origami {
   position: absolute;
   inset: 0;
@@ -132,7 +139,7 @@ body {
   font-family: var(--sans);
   font-size: 15px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--text);
   text-align: center;
   letter-spacing: 0.12em;
   padding: 8px 2px;
@@ -226,7 +233,7 @@ h1 {
   font-weight: 600;
   font-size: clamp(34px, 9vw, 52px);
   line-height: 1.05;
-  color: var(--ink);
+  color: var(--text);
   margin-bottom: 16px;
 }
 h1 em {
@@ -237,7 +244,7 @@ h1 em {
 .lede {
   font-size: 16px;
   line-height: 1.55;
-  color: var(--ink-soft);
+  color: var(--text-soft);
   max-width: 320px;
   margin: 0 auto 32px;
 }
@@ -527,6 +534,144 @@ h1 em {
 @keyframes beat {
   0%, 100% { transform: scale(1); }
   30% { transform: scale(1.22); }
+}
+
+/* ---------- THEME TOGGLE ---------- */
+.theme-toggle {
+  position: fixed;
+  right: calc(env(safe-area-inset-right) + 16px);
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  z-index: 60;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--red);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(139, 14, 24, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.25s var(--ease), background 0.4s, color 0.4s,
+    border-color 0.4s;
+  touch-action: manipulation;
+}
+.theme-toggle:active {
+  transform: scale(0.9) rotate(-18deg);
+}
+.theme-toggle .i-sun {
+  display: none;
+}
+.theme-goth .theme-toggle {
+  color: var(--gold);
+  background: rgba(22, 14, 26, 0.72);
+  border-color: rgba(190, 120, 220, 0.28);
+}
+.theme-goth .theme-toggle .i-sun {
+  display: block;
+}
+.theme-goth .theme-toggle .i-moon {
+  display: none;
+}
+
+/* ---------- GOTH THEME ---------- */
+.theme-goth {
+  --red: #9b1023;
+  --red-deep: #4a0610;
+  --red-bright: #cf1d35;
+  --pink: #b13a6e;
+  --pink-soft: #e3a6c6;
+  --gold: #c79be0;
+  --text: #ece7f0;
+  --text-soft: #a99fb3;
+}
+
+/* gate */
+.theme-goth #gate {
+  background: radial-gradient(
+    120% 90% at 50% 16%,
+    #1a1020 0%,
+    #110a16 45%,
+    #07050a 100%
+  );
+}
+.theme-goth .gate-field {
+  background: rgba(24, 16, 28, 0.92);
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(190, 120, 220, 0.22);
+}
+.theme-goth .gate-field.error {
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1.5px var(--red-bright);
+}
+.theme-goth #gate-input::placeholder {
+  color: #6a5a72;
+}
+.theme-goth .origami {
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.6));
+}
+
+/* intro */
+.theme-goth #intro {
+  background: radial-gradient(
+    120% 90% at 50% 12%,
+    #1a1020 0%,
+    #100a16 48%,
+    #07050a 100%
+  );
+}
+.theme-goth .rail {
+  background: repeating-linear-gradient(
+    90deg,
+    #3a2c44 0 14px,
+    transparent 14px 26px
+  );
+  opacity: 0.6;
+}
+
+/* riddle */
+.theme-goth #riddle {
+  background: linear-gradient(170deg, #0b0710 0%, #150a16 55%, #220b1b 100%);
+}
+.theme-goth .clues li {
+  background: rgba(190, 120, 220, 0.05);
+  border-color: rgba(190, 120, 220, 0.14);
+  color: #ddd2e4;
+}
+.theme-goth .riddle-card .sub {
+  color: #9a8fa6;
+}
+.theme-goth #answer {
+  background: rgba(190, 120, 220, 0.06);
+  border-color: rgba(190, 120, 220, 0.2);
+}
+.theme-goth #answer:focus {
+  border-color: var(--red-bright);
+}
+
+/* journey */
+.theme-goth #journey {
+  background: linear-gradient(
+    180deg,
+    #050410 0%,
+    #0c0820 30%,
+    #1a0f2e 62%,
+    #2a1433 86%,
+    #3a1c38 100%
+  );
+}
+.theme-goth .map-label {
+  background: rgba(26, 18, 30, 0.9);
+  color: #ece7f0;
+}
+.theme-goth .map-label::after {
+  box-shadow: 0 0 0 3px rgba(26, 18, 30, 0.9);
+}
+.theme-goth .map-label.start::after {
+  background: #c79be0;
 }
 
 @media (prefers-reduced-motion: reduce) {
